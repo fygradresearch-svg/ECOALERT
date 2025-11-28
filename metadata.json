@@ -1,0 +1,7 @@
+{
+  "name": "EcoAlert - VERSION REAL ",
+  "description": "Aplicación móvil para rastreo de camiones recolectores y notificaciones silenciosas en Huancayo.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
