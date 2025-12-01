@@ -25,7 +25,8 @@ const App: React.FC = () => {
   const [tempSettings, setTempSettings] = useState({
     thresholdLong: NOTIFICATION_THRESHOLDS.LONG_RANGE.toString(),
     thresholdMedium: NOTIFICATION_THRESHOLDS.MEDIUM_RANGE.toString(),
-    thresholdClose: NOTIFICATION_THRESHOLDS.ARRIVAL.toString()
+    thresholdClose: NOTIFICATION_THRESHOLDS.ARRIVAL.toString(),
+    routeId: '' // Agregado para modificar zona
   });
   
   // Simulation State
@@ -48,7 +49,8 @@ const App: React.FC = () => {
       setTempSettings({
         thresholdLong: loggedInUser.notificationSettings.thresholdLong.toString(),
         thresholdMedium: loggedInUser.notificationSettings.thresholdMedium.toString(),
-        thresholdClose: loggedInUser.notificationSettings.thresholdClose.toString()
+        thresholdClose: loggedInUser.notificationSettings.thresholdClose.toString(),
+        routeId: loggedInUser.routeId || ''
       });
     }
 
@@ -72,6 +74,7 @@ const App: React.FC = () => {
   const handleSaveSettings = () => {
     if (!user || !user.notificationSettings) return;
 
+    // Actualizar configuración numérica
     const newSettings = {
       ...user.notificationSettings,
       thresholdLong: parseInt(tempSettings.thresholdLong) || 1000,
@@ -79,12 +82,33 @@ const App: React.FC = () => {
       thresholdClose: parseInt(tempSettings.thresholdClose) || 50,
     };
 
-    setUser({ ...user, notificationSettings: newSettings });
+    // Actualizar Ruta Activa si cambió
+    let updatedRouteId = user.routeId;
+    if (tempSettings.routeId && tempSettings.routeId !== user.routeId) {
+       updatedRouteId = tempSettings.routeId;
+       const newRoute = HUANCAYO_ROUTES.find(r => r.id === tempSettings.routeId);
+       setActiveRoute(newRoute || null);
+       
+       // Reiniciar camión simulado para la nueva ruta
+       if (newRoute) {
+         setTruck({
+            id: 't_sim_new',
+            routeId: newRoute.id,
+            driverName: 'Conductor Asignado',
+            location: newRoute.path[0],
+            isMoving: false,
+            lastUpdate: Date.now()
+         });
+         setSimulatingMovement(false); // Pausar para evitar saltos raros
+       }
+    }
+
+    setUser({ ...user, notificationSettings: newSettings, routeId: updatedRouteId });
     
     triggerNotification({
       id: Date.now().toString(),
       title: 'Configuración Guardada',
-      message: 'Las distancias de alerta han sido actualizadas.',
+      message: 'Preferencias y zona actualizadas correctamente.',
       type: 'success',
       timestamp: Date.now()
     });
@@ -259,17 +283,14 @@ const App: React.FC = () => {
     );
   }
 
-  // --- VISTA CIUDADANO (LAYOUT CORREGIDO) ---
+  // --- VISTA CIUDADANO (LAYOUT FLEX COLUMN) ---
+  // Estructura: [Contenido Flexible (Scroll)] + [Nav Fixed Size (No Scroll)]
   return (
-    // CONTENEDOR PRINCIPAL: Relativo para contener elementos absolutos
-    <div className="relative w-full h-full bg-slate-50 overflow-hidden">
+    <div className="flex flex-col h-[100dvh] w-full bg-slate-50 overflow-hidden">
       <NotificationToast notification={notification} onDismiss={() => setNotification(null)} />
       
-      {/* AREA DE CONTENIDO PRINCIPAL 
-          Usamos pb-20 (padding bottom 5rem) para asegurar que NADA quede detrás del menú
-          Usamos h-full y overflow-y-auto para que el scroll sea interno
-      */}
-      <main className="w-full h-full overflow-y-auto pb-24 bg-slate-50">
+      {/* AREA DE CONTENIDO PRINCIPAL: Toma todo el espacio restante */}
+      <main className="flex-1 w-full overflow-y-auto relative bg-slate-50 scroll-smooth">
         <AnimatePresence mode="wait">
           
           {/* --- MAP TAB --- */}
@@ -279,7 +300,7 @@ const App: React.FC = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="w-full h-full relative" // El mapa toma el 100% del contenedor padre (que ya tiene padding bottom)
+              className="w-full h-full relative min-h-full" 
             >
               <div className="absolute top-0 left-0 right-0 p-4 pt-safe z-10 pointer-events-none">
                   <Card className="bg-white/95 backdrop-blur pointer-events-auto flex items-center justify-between shadow-lg border-0">
@@ -306,10 +327,6 @@ const App: React.FC = () => {
                   </Card>
               </div>
 
-              {/* El mapa es absolute inset-0 DENTRO del main, pero como el main tiene padding-bottom,
-                  necesitamos que el mapa "escape" de ese padding o ajustamos el contenedor. 
-                  En este caso, para MapView, queremos que ocupe todo el espacio visible menos el footer.
-              */}
               <div className="absolute inset-0 z-0 h-full w-full">
                  <MapView 
                    userLocation={user.location!} 
@@ -351,7 +368,7 @@ const App: React.FC = () => {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="p-6 space-y-6 pt-safe"
+              className="p-6 space-y-6 pt-safe pb-safe"
             >
               <h2 className="text-2xl font-bold text-slate-800">Mi Perfil</h2>
               
@@ -384,10 +401,16 @@ const App: React.FC = () => {
                  </div>
                  
                  <div className="mt-4 pt-4 border-t border-slate-100">
-                    <p className="text-xs text-slate-400 font-bold uppercase mb-1">Zona / Barrio</p>
-                    <p className="text-sm font-bold text-slate-700">
-                      {activeRoute?.name || 'Zona no identificada'}
-                    </p>
+                    <p className="text-xs text-slate-400 font-bold uppercase mb-2">Zona / Barrio</p>
+                    <select
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none"
+                      value={tempSettings.routeId}
+                      onChange={(e) => setTempSettings({...tempSettings, routeId: e.target.value})}
+                    >
+                       {HUANCAYO_ROUTES.map(route => (
+                         <option key={route.id} value={route.id}>{route.name}</option>
+                       ))}
+                    </select>
                  </div>
               </Card>
 
@@ -432,11 +455,11 @@ const App: React.FC = () => {
         </AnimatePresence>
       </main>
 
-      {/* --- BOTTOM NAV (FIXED ABSOLUTE POSITION) --- 
-          Usamos fixed bottom-0 para anclarlo a la ventana visual del navegador.
-          Esto sobrevive al scroll y a cambios de viewport.
+      {/* --- BOTTOM NAV (BLOCK ELEMENT, NOT FIXED) --- 
+          Al estar dentro de un flex-col que ocupa el 100% de la pantalla,
+          este nav siempre estará al fondo visible. shrink-0 evita que se aplaste.
       */}
-      <nav className="fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-slate-200 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-[1000]">
+      <nav className="h-16 shrink-0 bg-white border-t border-slate-200 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-50 relative pb-safe">
         <div className="flex justify-around items-center h-full max-w-md mx-auto">
           <button 
             onClick={() => setActiveTab('map')}
