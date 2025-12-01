@@ -66,4 +66,5 @@ export interface EcoTacho {
   descripcion: string;
   beneficios: string[];
   activo: boolean;
+  image?: string;
 }
