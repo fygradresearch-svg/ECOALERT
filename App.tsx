@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { MapPin, Truck as TruckIcon, Settings, Navigation, Bell, ShoppingBag, Save, LogOut } from 'lucide-react';
+import { MapPin, Truck as TruckIcon, Settings, Navigation, Bell, ShoppingBag, Save, LogOut, CheckCircle } from 'lucide-react';
 import { User, UserRole, Truck, AppNotification, WasteRoute, Coordinates } from './types';
 import { HUANCAYO_ROUTES, NOTIFICATION_THRESHOLDS } from './constants';
 import { calculateDistance } from './services/geoService';
@@ -24,6 +24,9 @@ const App: React.FC = () => {
   const [activeRoute, setActiveRoute] = useState<WasteRoute | null>(null);
   const [notification, setNotification] = useState<AppNotification | null>(null);
   
+  // Estado para controlar si el usuario ya entregó su basura
+  const [trashDelivered, setTrashDelivered] = useState(false);
+
   // Estado local para edición de configuración (Settings)
   const [tempSettings, setTempSettings] = useState({
     thresholdLong: NOTIFICATION_THRESHOLDS.LONG_RANGE.toString(),
@@ -57,6 +60,9 @@ const App: React.FC = () => {
   }, []);
 
   const playAlertSound = () => {
+    // Si ya entregó la basura, no reproducir sonido
+    if (trashDelivered) return;
+
     if (audioRef.current) {
       audioRef.current.currentTime = 0;
       audioRef.current.play().catch(e => console.log("Audio play failed (interaction needed)", e));
@@ -65,6 +71,13 @@ const App: React.FC = () => {
       if (navigator.vibrate) {
         navigator.vibrate(200);
       }
+    }
+  };
+
+  const stopAlertSound = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
     }
   };
 
@@ -110,6 +123,20 @@ const App: React.FC = () => {
     }
   };
 
+  const handleTrashDelivered = () => {
+    setTrashDelivered(true);
+    setSimulatingMovement(false); // Detener el camión
+    stopAlertSound(); // Silenciar inmediatamente
+    
+    triggerNotification({
+      id: 'delivered_' + Date.now(),
+      title: '¡Basura Entregada!',
+      message: 'El camión se ha detenido y las alertas se han silenciado.',
+      type: 'success',
+      timestamp: Date.now()
+    });
+  };
+
   const handleSaveSettings = () => {
     if (!user || !user.notificationSettings) return;
 
@@ -139,6 +166,7 @@ const App: React.FC = () => {
             lastUpdate: Date.now()
          });
          setSimulatingMovement(false); // Pausar para evitar saltos raros
+         setTrashDelivered(false); // Resetear estado de entrega
          sentNotifications.current.movementStarted = false;
        }
     }
@@ -170,10 +198,13 @@ const App: React.FC = () => {
     setNotification(note);
     // Reproducir sonido para cualquier notificación importante
     if (note.type === 'warning' || note.type === 'success') {
-       playAlertSound();
+       // Solo sonar si NO se ha entregado la basura (excepto si es la confirmación de entrega)
+       if (note.title !== '¡Basura Entregada!') {
+          playAlertSound();
+       }
        sendNativeNotification(note.title, note.message);
     }
-  }, []);
+  }, [trashDelivered]); // Dependencia trashDelivered importante
 
   // --- SIMULATION EFFECT ---
   // Este efecto mueve el camión a lo largo de los puntos de la ruta seleccionada
@@ -192,7 +223,8 @@ const App: React.FC = () => {
             type: 'info',
             timestamp: Date.now()
          });
-         playAlertSound(); // Sonido al iniciar
+         // Solo sonar si no ha entregado basura
+         if (!trashDelivered) playAlertSound(); 
          sentNotifications.current.movementStarted = true;
       }
       
@@ -212,6 +244,8 @@ const App: React.FC = () => {
             nextIndex = 0; 
             // Reset notificaciones al reiniciar ciclo
             sentNotifications.current = { longRange: false, mediumRange: false, arrival: false, movementStarted: true };
+            // Resetear el estado de basura entregada para el "siguiente día/vuelta"
+            setTrashDelivered(false);
           }
 
           const nextLocation = path[nextIndex];
@@ -237,11 +271,14 @@ const App: React.FC = () => {
     }
 
     return () => clearInterval(interval);
-  }, [simulatingMovement, activeRoute, user?.role, triggerNotification]);
+  }, [simulatingMovement, activeRoute, user?.role, triggerNotification, trashDelivered]);
 
 
   // --- NOTIFICATION LOGIC ---
   useEffect(() => {
+    // Si ya entregó la basura, no procesar alertas de distancia
+    if (trashDelivered) return;
+
     // Solo ciudadanos reciben alertas
     if (user?.role !== UserRole.CITIZEN || !truck || !user.location || !user.notificationSettings?.enabled) return;
 
@@ -285,7 +322,7 @@ const App: React.FC = () => {
       sentNotifications.current.longRange = true;
     }
 
-  }, [truck, user, triggerNotification]);
+  }, [truck, user, triggerNotification, trashDelivered]);
 
 
   // --- RENDER ---
@@ -369,13 +406,16 @@ const App: React.FC = () => {
                   <Card className="bg-white/95 backdrop-blur pointer-events-auto flex items-center justify-between shadow-lg border-0">
                      {truck && activeRoute ? (
                        <div className="flex items-center gap-3">
-                         <div className="bg-emerald-100 p-2 rounded-full animate-pulse">
-                           <TruckIcon className="text-emerald-600" size={20} />
+                         <div className={`p-2 rounded-full ${trashDelivered ? 'bg-slate-100' : 'bg-emerald-100 animate-pulse'}`}>
+                           <TruckIcon className={trashDelivered ? 'text-slate-400' : 'text-emerald-600'} size={20} />
                          </div>
                          <div>
                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{activeRoute.name}</p>
                            <p className="font-bold text-slate-800 text-sm">
-                             A {calculateDistance(user.location!, truck.location).toFixed(0)}m de casa
+                             {trashDelivered 
+                               ? 'Recolección Completada' 
+                               : `A ${calculateDistance(user.location!, truck.location).toFixed(0)}m de casa`
+                             }
                            </p>
                          </div>
                        </div>
@@ -395,18 +435,58 @@ const App: React.FC = () => {
                    userLocation={user.location!} 
                    truck={truck}
                    role={UserRole.CITIZEN} 
-                   onTruckClick={() => setSimulatingMovement(true)}
+                   onTruckClick={() => {
+                     if (!trashDelivered) {
+                       setSimulatingMovement(true);
+                     }
+                   }}
                   />
               </div>
               
-              {/* Botón Flotante Simulación */}
-              <div className="absolute bottom-6 right-4 z-[400]">
-                 <button 
-                   onClick={() => setSimulatingMovement(!simulatingMovement)}
-                   className={`p-4 rounded-full shadow-xl border-2 transition-all ${simulatingMovement ? 'bg-emerald-500 border-emerald-600 text-white' : 'bg-white border-slate-200 text-slate-400'}`}
-                 >
-                   <Navigation size={24} className={simulatingMovement ? 'animate-pulse' : ''} />
-                 </button>
+              {/* BOTONES FLOTANTES */}
+              <div className="absolute bottom-6 left-0 right-0 px-4 z-[400] flex items-end justify-between pointer-events-none">
+                 
+                 {/* BOTÓN YA ENTREGUE (IZQUIERDA/CENTRO) */}
+                 <div className="pointer-events-auto flex-1 mr-4">
+                   {activeRoute && truck && (
+                     !trashDelivered ? (
+                       <Button 
+                        onClick={handleTrashDelivered}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-xl border-2 border-white w-full flex items-center justify-center gap-2 animate-bounce-slight"
+                       >
+                         <CheckCircle size={20} /> Ya entregué mi basura
+                       </Button>
+                     ) : (
+                       <div className="bg-white/90 backdrop-blur text-emerald-700 px-4 py-3 rounded-xl font-bold text-sm shadow-lg border border-emerald-100 text-center flex items-center justify-center gap-2">
+                          <CheckCircle size={18} className="fill-emerald-100" /> ¡Listo! Alertas silenciadas.
+                       </div>
+                     )
+                   )}
+                 </div>
+
+                 {/* BOTÓN SIMULACIÓN (DERECHA) */}
+                 <div className="pointer-events-auto">
+                    <button 
+                      onClick={() => {
+                        if (trashDelivered) {
+                           setTrashDelivered(false);
+                           setSimulatingMovement(true);
+                           triggerNotification({
+                              id: 'reset_' + Date.now(),
+                              title: 'Simulación Reiniciada',
+                              message: 'Has reactivado las alertas.',
+                              type: 'info',
+                              timestamp: Date.now()
+                           });
+                        } else {
+                           setSimulatingMovement(!simulatingMovement);
+                        }
+                      }}
+                      className={`p-3 rounded-full shadow-xl border-2 transition-all ${simulatingMovement ? 'bg-amber-500 border-amber-600 text-white' : 'bg-white border-slate-200 text-slate-400'}`}
+                    >
+                      <Navigation size={24} className={simulatingMovement ? 'animate-pulse' : ''} />
+                    </button>
+                 </div>
               </div>
             </motion.div>
           )}

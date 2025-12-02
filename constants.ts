@@ -111,7 +111,7 @@ export const NOTIFICATION_THRESHOLDS = {
 };
 
 // --- DATA SEMILLA: ECO TACHOS ---
-// Imágenes actualizadas para parecer "inventadas" (Renderizadas/Alta Calidad)
+// Imágenes actualizadas con TACHOS REALES
 export const ECO_TACHOS_DATA: EcoTacho[] = [
   {
     id: 't1',
@@ -119,54 +119,40 @@ export const ECO_TACHOS_DATA: EcoTacho[] = [
     tipo: 'Domiciliario',
     capacidadLitros: 120,
     casasSugeridas: '3–5 viviendas',
-    precioMin: 180,
-    precioMax: 250,
+    precioMin: 100, 
+    precioMax: 120,
     moneda: 'PEN',
-    descripcion: 'Tacho plástico con ruedas, ideal para pequeñas cuadras o pasajes. Resistente, fácil de mover y adecuado para residuos diarios.',
+    descripcion: 'Tacho plástico gris con ruedas, ideal para pequeñas cuadras o pasajes. Resistente, fácil de mover y adecuado para residuos diarios.',
     beneficios: ['Fácil transporte', 'Tapa hermética anti-olores', 'Material reciclado'],
     activo: true,
-    image: 'https://images.unsplash.com/photo-1596238626500-1f97b665261d?auto=format&fit=crop&q=80&w=400&h=400' 
+    image: 'https://promart.vteximg.com.br/arquivos/ids/703444-1000-1000/image-b0b2e3e5c9b74052968843c088926217.jpg' // Tacho gris estándar
   },
   {
     id: 't2',
     nombre: 'Contenedor Comunitario Móvil',
     tipo: 'Comunitario',
-    capacidadLitros: 240,
-    casasSugeridas: '8–12 viviendas',
-    precioMin: 280,
-    precioMax: 400,
+    capacidadLitros: 660, 
+    casasSugeridas: '20–30 viviendas',
+    precioMin: 200, 
+    precioMax: 280,
     moneda: 'PEN',
-    descripcion: 'Tacho comunitario de mayor capacidad para colocarse en esquinas estratégicas. Reduce la cantidad de bolsas dispersas en la vía pública.',
-    beneficios: ['Alta visibilidad', 'Ruedas reforzadas', 'Pedal de apertura'],
+    descripcion: 'Contenedor comunitario de alta capacidad con 4 ruedas para colocarse en esquinas estratégicas. Reduce la cantidad de bolsas dispersas.',
+    beneficios: ['Alta visibilidad', '4 Ruedas reforzadas', 'Tapa plana'],
     activo: true,
-    image: 'https://images.unsplash.com/photo-1618600003061-0b5c1753715c?auto=format&fit=crop&q=80&w=400&h=400'
+    image: 'https://contenedoresdebasura.com.mx/wp-content/uploads/2019/04/CONTENEDOR-660-LITROS-GRIS.jpg' // Contenedor grande 4 ruedas
   },
   {
     id: 't3',
-    nombre: 'Contenedor Metálico Urbano',
-    tipo: 'Comunitario',
-    capacidadLitros: 660,
-    casasSugeridas: '20–30 viviendas',
-    precioMin: 1500,
-    precioMax: 3000,
-    moneda: 'PEN',
-    descripcion: 'Contenedor metálico de alta capacidad, ideal para barrios con alto volumen de residuos. Soporta uso intensivo.',
-    beneficios: ['Anti-vandálico', 'Ignífugo (resistente al fuego)', 'Vaciado mecanizado'],
-    activo: true,
-    image: 'https://images.unsplash.com/photo-1533246835071-c0326b48472d?auto=format&fit=crop&q=80&w=400&h=400'
-  },
-  {
-    id: 't4',
-    nombre: 'Punto Verde Modular (Set x3)',
+    nombre: 'Punto Verde Modular (Set de 3)', 
     tipo: 'Punto Verde',
-    capacidadLitros: 120,
+    capacidadLitros: 360, // 120L x 3
     casasSugeridas: 'Condominios o Parques',
-    precioMin: 800,
-    precioMax: 1500,
+    precioMin: 500, 
+    precioMax: 600,
     moneda: 'PEN',
-    descripcion: 'Conjunto de tres tachos identificados por color para separación de residuos: Orgánicos, Reciclables y No Aprovechables.',
-    beneficios: ['Fomenta el reciclaje', 'Colores normados', 'Base estable'],
+    descripcion: 'Estación de reciclaje completa. Conjunto de tres contenedores identificados por color para separación de residuos: Orgánicos, Reciclables y No Aprovechables.',
+    beneficios: ['Fomenta el reciclaje', 'Colores normados', 'Estructura sólida'],
     activo: true,
-    image: 'https://images.unsplash.com/photo-1611284446314-60a58ac0deb9?auto=format&fit=crop&q=80&w=400&h=400'
+    image: 'https://acdn.mitiendanube.com/stores/968/562/products/estacion-ambiental-3-cestos1-0072d62757279316d815949168128384-640-0.jpg' // Set reciclaje 3 colores
   }
 ];
