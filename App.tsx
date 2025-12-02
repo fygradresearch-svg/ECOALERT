@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { MapPin, Truck as TruckIcon, Settings, Navigation, Bell, ShoppingBag, Save, LogOut } from 'lucide-react';
-import { User, UserRole, Truck, Notification, WasteRoute, Coordinates } from './types';
+import { User, UserRole, Truck, AppNotification, WasteRoute, Coordinates } from './types';
 import { HUANCAYO_ROUTES, NOTIFICATION_THRESHOLDS } from './constants';
 import { calculateDistance } from './services/geoService';
 import MapView from './components/MapView';
@@ -22,7 +22,7 @@ const App: React.FC = () => {
   
   const [truck, setTruck] = useState<Truck | null>(null);
   const [activeRoute, setActiveRoute] = useState<WasteRoute | null>(null);
-  const [notification, setNotification] = useState<Notification | null>(null);
+  const [notification, setNotification] = useState<AppNotification | null>(null);
   
   // Estado local para edición de configuración (Settings)
   const [tempSettings, setTempSettings] = useState({
@@ -166,7 +166,7 @@ const App: React.FC = () => {
     });
   };
 
-  const triggerNotification = useCallback((note: Notification) => {
+  const triggerNotification = useCallback((note: AppNotification) => {
     setNotification(note);
     // Reproducir sonido para cualquier notificación importante
     if (note.type === 'warning' || note.type === 'success') {

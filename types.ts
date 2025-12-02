@@ -46,7 +46,7 @@ export interface Truck {
   lastUpdate: number;
 }
 
-export interface Notification {
+export interface AppNotification {
   id: string;
   title: string;
   message: string;
